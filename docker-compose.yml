@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  # --- BAZA 1: Redis (Routing - Key/Value) ---
+  redis_routes:
+    image: redis:alpine
+    container_name: redis_routes_db
+    restart: always
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+  # --- BAZA 2: PostgreSQL (Metadane - SQL) ---
+  postgres_meta:
+    image: postgres:15-alpine
+    container_name: postgres_meta_db
+    restart: always
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Mapowanie skryptu init.sql do wewnątrz kontenera:
+      - ./postgres_init:/docker-entrypoint-initdb.d
+
+# Wolumeny (Trwałe przechowywanie danych)
+volumes:
+  redis_data:
+  postgres_data:
