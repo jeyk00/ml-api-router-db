@@ -79,6 +79,17 @@ VALUES ('digit-recognizer-v1', '2025-12-13 14:15:00', 1);
 ```
 
 ---
+### 3. Logging (CRITICAL: UPSERT Logic)
+The Router **MUST** use an atomic **UPSERT** strategy for metrics to handle concurrent requests and avoid unique key violations. Do not use simple `INSERT`.
+
+* **Logic:** Try to insert `1`. If the time bucket exists for this model, increment the counter instead of failing.
+* **Required SQL Pattern:**
+    ```sql
+    INSERT INTO model_usage_metrics (model_name, time_window, request_count)
+    VALUES (%s, %s, 1)
+    ON CONFLICT (model_name, time_window)
+    DO UPDATE SET request_count = model_usage_metrics.request_count + 1;
+    ```
 
 ## 🔌 Router Integration Logic (Dev Guide)
 
