@@ -1,4 +1,4 @@
-# 🏥 AI Med - ML API Infrastructure (Persistence Layer)
+# 🏥 ML API Router DB (Persistence Layer)
 
 This repository provides the isolated **Persistence Layer** for the ML API, consisting of:
 - **Redis** (Routing)
