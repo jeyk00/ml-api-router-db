@@ -12,12 +12,12 @@ CREATE TABLE IF NOT EXISTS model_registry (
 CREATE TABLE IF NOT EXISTS model_usage_metrics (
     model_name VARCHAR(100) NOT NULL,
     time_window TIMESTAMP NOT NULL,       -- Początek okna, np. 14:00, 14:15
-    request_count INTEGER DEFAULT 0,      -- Licznik uderzeń w tym oknie
+    request_count INTEGER DEFAULT 0,      -- Licznik requestów w tym oknie
     
     -- Klucz złożony: Jeden wpis na model w danym oknie czasowym
     PRIMARY KEY (model_name, time_window),
     
-    CONSTRAINT fk_model_registry 
+    CONSTRAINT fk_model_registry --Przed wprowadzeniem danych dla modelu wymagane jest zarejestrownaie go
         FOREIGN KEY(model_name) 
         REFERENCES model_registry(model_name)
         ON DELETE CASCADE
