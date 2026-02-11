@@ -20,6 +20,13 @@ This repository provides the isolated **Persistence Layer** for the ML API, cons
 1. Create a `.env` file (see [Configuration](#️-configuration))
 2. Start the infrastructure:
 
+#### Option 1: One-Command Start (Recommended)
+This script handles environment validation and startup.
+```bash
+./start_db.sh
+```
+
+#### Option 2: Manual Start
 ```bash
 docker-compose up -d
 ```
