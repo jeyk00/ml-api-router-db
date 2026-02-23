@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # --- BAZA 1: Redis (Routing - Key/Value) ---
+  #BAZA 1: Redis 
   redis_routes:
     image: redis:alpine
     container_name: redis_routes_db
@@ -12,7 +12,7 @@ services:
       - redis_data:/data
     command: redis-server --appendonly yes
 
-  # --- BAZA 2: PostgreSQL (Metadane - SQL) ---
+  #BAZA 2: PostgreSQL (Metadane - SQL)
   postgres_meta:
     image: postgres:15-alpine
     container_name: postgres_meta_db
