@@ -4,42 +4,42 @@ from pydantic import BaseModel, Field
 
 def get_window_start(dt: datetime, window_minutes: int = 15) -> datetime:
     """
-    Funkcja pomocnicza zaokrąglająca czas w dół do najbliższego interwału.
-    Przykład dla 15 min: 14:07 -> 14:00, 14:23 -> 14:15.
+    Helper that floors a datetime down to the nearest interval boundary.
+    Example for 15 min: 14:07 -> 14:00, 14:23 -> 14:15.
     """
-    # Zaokrąglamy minuty w dół do najbliższej wielokrotności okna
+    # Round minutes down to the nearest multiple of the window size
     rounded_minutes = (dt.minute // window_minutes) * window_minutes
     return dt.replace(minute=rounded_minutes, second=0, microsecond=0)
 
 class MLModelRouting(BaseModel):
     """
-    Wspólny model reprezentujący dane modelu ML rozproszone na dwie bazy.
-    Z tego kontraktu będą korzystać zarówno funkcje zapisu, jak i odczytu.
+    Shared model representing ML model data spread across two databases.
+    Both write and read functions work against this same contract.
     """
-    model_name: str = Field(..., description="Unikalna nazwa modelu, np. 'digit-recognizer-v1'")
+    model_name: str = Field(..., description="Unique model name, e.g. 'digit-recognizer-v1'")
     
-    # -- DANE DO REDIS --
-    ip_address: Optional[str] = Field(None, description="Adres IP z portem, z Redis (np. '127.0.0.1:8000')")
+    # -- REDIS fields --
+    ip_address: Optional[str] = Field(None, description="IP address with port, from Redis (e.g. '127.0.0.1:8000')")
     
-    # -- DANE DO POSTGRES (tabela `model_registry`) --
-    health_status: str = Field("OK", description="Status zdrowia z Postgres ('OK', 'FAILED')")
-    last_called_at: Optional[datetime] = Field(None, description="Czas ostatniego użycia z Postgres")
+    # -- POSTGRES fields (table `model_registry`) --
+    health_status: str = Field("OK", description="Health status from Postgres ('OK', 'FAILED')")
+    last_called_at: Optional[datetime] = Field(None, description="Timestamp of last usage from Postgres")
 
 class ModelUsageMetric(BaseModel):
     """
-    Model pomocniczy do logowania metryk do tabeli `model_usage_metrics` (Postgres).
-    Automatycznie oblicza 'time_window_start' i 'time_window_end'.
+    Helper model for logging metrics into the `model_usage_metrics` table (Postgres).
+    Automatically computes 'time_window_start' and 'time_window_end'.
     """
     model_name: str
     time_window_start: datetime
     time_window_end: datetime
-    request_count: int = 1  # Ile requestów chcemy zalogować (np. 1 na każde wywołanie)
+    request_count: int = 1  # how many requests to log at once (usually 1 per call)
 
     @classmethod
     def create_for_now(cls, model_name: str, window_minutes: int = 15, request_count: int = 1):
         """
-        Narzędzie (Factory Method) by automatycznie tworzyć obiekty dla obecnej chwili
-        wpadające w poprawne 15-minutowe (lub inne) "wiaderko" czasowe.
+        Factory method that creates an instance bucketed into the correct
+        15-minute (or other) time window for the current moment.
         """
         now = datetime.now()
         start = get_window_start(now, window_minutes)

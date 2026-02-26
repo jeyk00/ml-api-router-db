@@ -4,23 +4,24 @@ from src.database import redis_client, pg_pool
 
 async def register_model(model_data: MLModelRouting):
     """
-    Zapisuje/Aktualizuje dane modelu w obu bazach naraz.
-    Korzysta z puli połączeń dla optymalizacji.
+    (Task: Writer)
+    Saves/updates model data in both databases at once.
+    Uses connection pooling for efficiency.
     """
-    # 1. Zapis do REDIS (Jeżeli podano IP)
+    # 1. Write to REDIS (only if an IP address was provided)
     if model_data.ip_address and redis_client:
-        # Zapisujemy do Hasaha "model_routes" zgodnie ze strukturą bazy
+        # Store in the "model_routes" hash according to the DB structure
         await redis_client.hset(
             "model_routes", 
             key=model_data.model_name, 
             value=model_data.ip_address
         )
-        print(f"Zapisano adres {model_data.ip_address} w Redis dla {model_data.model_name}")
+        print(f"Saved address {model_data.ip_address} in Redis for {model_data.model_name}")
 
-    # 2. Zapis/Upsert do POSTGRES
+    # 2. Write/Upsert to POSTGRES
     if pg_pool is not None:
         async with pg_pool.acquire() as conn:
-            # Upsert do registry (ON CONFLICT DO UPDATE)
+            # Upsert into registry (ON CONFLICT DO UPDATE)
             query = """
                 INSERT INTO model_registry (model_name, health_status, last_called_at)
                 VALUES ($1, $2, CURRENT_TIMESTAMP)
@@ -29,12 +30,13 @@ async def register_model(model_data: MLModelRouting):
                     last_called_at = CURRENT_TIMESTAMP;
             """
             await conn.execute(query, model_data.model_name, model_data.health_status)
-            print(f"Zaktualizowano status {model_data.model_name} w Postgres")
+            print(f"Updated status for {model_data.model_name} in Postgres")
 
 async def log_model_usage(metric_data: ModelUsageMetric):
     """
-    Loguje wywołanie modelu do odpowiedniego "wiadra" czasowego w tabeli `model_usage_metrics`.
-    Ta funkcja jest wołana np. na koniec każdego zapytania od użytkownika.
+    (Task: Writer)
+    Logs a model call into the appropriate time bucket in the `model_usage_metrics` table.
+    This function is called at the end of each user request.
     """
     if pg_pool is not None:
         async with pg_pool.acquire() as conn:
@@ -53,32 +55,33 @@ async def log_model_usage(metric_data: ModelUsageMetric):
                 metric_data.time_window_end,
                 metric_data.request_count
             )
-            print(f"Zwiększono licznik żądań dla {metric_data.model_name} "
-                  f"dla okna {metric_data.time_window_start.strftime('%H:%M')} - "
+            print(f"Incremented request counter for {metric_data.model_name} "
+                  f"in window {metric_data.time_window_start.strftime('%H:%M')} - "
                   f"{metric_data.time_window_end.strftime('%H:%M')}")
 
 async def delete_model(model_name: str):
     """
-    Usuwa model z pamięci podręcznej rutingu (Redis) oraz z metadanych (Postgres).
-    Kaskadowe usuwanie w konfiguracji bazy SQL zadba o usunięcie również powiązanych metryk, 
-    ponieważ na kluczu obcym fk_model_registry ustawiono ON DELETE CASCADE.
+    (Task: Writer)
+    Removes a model from the routing cache (Redis) and from the metadata store (Postgres).
+    The cascade delete configured on the fk_model_registry foreign key (ON DELETE CASCADE)
+    will automatically take care of removing the associated metrics as well.
     """
-    # 1. Usunięcie z REDIS (przestaniemy na niego rutować ruch natychmiast)
+    # 1. Remove from REDIS (traffic will stop being routed to it immediately)
     if redis_client:
         deleted_count = await redis_client.hdel("model_routes", model_name)
         if deleted_count > 0:
-            print(f"Usunięto model {model_name} z rutingu w Redis.")
+            print(f"Removed model {model_name} from routing in Redis.")
         else:
-            print(f"Model {model_name} nie istniał w Redis.")
+            print(f"Model {model_name} did not exist in Redis.")
 
-    # 2. Usunięcie z POSTGRES (twarde dane i logi)
+    # 2. Remove from POSTGRES (hard data and logs)
     if pg_pool is not None:
         async with pg_pool.acquire() as conn:
             query = "DELETE FROM model_registry WHERE model_name = $1"
             result = await conn.execute(query, model_name)
             
-            # result zwraca stringa w stylu "DELETE 1" lub "DELETE 0"
+            # result comes back as a string like "DELETE 1" or "DELETE 0"
             if result == "DELETE 1":
-                print(f"Usunięto model {model_name} oraz powiązane logi z Postgres.")
+                print(f"Removed model {model_name} and its associated logs from Postgres.")
             else:
-                print(f"Brak modelu {model_name} w Postgres.")
+                print(f"Model {model_name} not found in Postgres.")
