@@ -11,6 +11,7 @@ def get_window_start(dt: datetime, window_minutes: int = 15) -> datetime:
     rounded_minutes = (dt.minute // window_minutes) * window_minutes
     return dt.replace(minute=rounded_minutes, second=0, microsecond=0)
 
+
 class MLModelRouting(BaseModel):
     """
     Shared model representing ML model data spread across two databases.
@@ -24,6 +25,11 @@ class MLModelRouting(BaseModel):
     # -- POSTGRES fields (table `model_registry`) --
     health_status: str = Field("OK", description="Health status from Postgres ('OK', 'FAILED')")
     last_called_at: Optional[datetime] = Field(None, description="Timestamp of last usage from Postgres")
+
+    def __str__(self):
+        return f"""Model: {self.model_name} \n IP: {self.ip_address} \n 
+        Status: {self.health_status} \n Last Called At: {self.last_called_at}"""
+    
 
 class ModelUsageMetric(BaseModel):
     """
