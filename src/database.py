@@ -12,7 +12,7 @@ POSTGRES_USER = os.getenv("POSTGRES_USER", "postgres")
 POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "postgres")
 POSTGRES_DB = os.getenv("POSTGRES_DB", "mlapi_db")
 POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")  # 'postgres_meta' inside the Docker network
-POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
+POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5433")
 
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")      # 'redis_routes' inside the Docker network
 REDIS_PORT = os.getenv("REDIS_PORT", "6379")

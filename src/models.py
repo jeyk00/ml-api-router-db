@@ -25,10 +25,12 @@ class MLModelRouting(BaseModel):
     # -- POSTGRES fields (table `model_registry`) --
     health_status: str = Field("OK", description="Health status from Postgres ('OK', 'FAILED')")
     last_called_at: Optional[datetime] = Field(None, description="Timestamp of last usage from Postgres")
+    created_at: Optional[datetime] = Field(None, description="Timestamp of first time usage in Postgres")
 
     def __str__(self):
-        return f"""Model: {self.model_name} \n IP: {self.ip_address} \n 
-        Status: {self.health_status} \n Last Called At: {self.last_called_at}"""
+        return f""" Model: {self.model_name} \n IP: {self.ip_address}
+ Status: {self.health_status} \n Last Called At: {self.last_called_at}
+ Created At: {self.created_at}"""
     
 
 class ModelUsageMetric(BaseModel):
