@@ -43,6 +43,11 @@ class ModelUsageMetric(BaseModel):
     time_window_end: datetime
     request_count: int = 1  # how many requests to log at once (usually 1 per call)
 
+    def __str__(self):
+            return f""" Model: {self.model_name} \n Time Window Start: {self.time_window_start}
+ Time Wndow End: {self.health_status} \n Last Called At: {self.last_called_at}
+ Created At: {self.created_at}"""
+
     @classmethod
     def create_for_now(cls, model_name: str, window_minutes: int = 15, request_count: int = 1):
         """

@@ -31,9 +31,9 @@ async def get_model_usage(model_name: str, limit: int) -> Optional[list[ModelUsa
             query = """
                 SELECT model_name, time_window_start, time_window_end, request_count 
                 FROM model_usage_metrics
-                WHERE model_name = $1;
+                WHERE model_name = $1
                 ORDER BY time_window_start
-                LIMIT $2
+                LIMIT $2;
             """
             records = await conn.fetch(query, model_name, limit)
             return [ModelUsageMetric(**dict(record)) for record in records]
@@ -46,9 +46,9 @@ async def get_time_window_usage(time_window_start: str, limit: int) -> Optional[
             query = """
                 SELECT model_name, time_window_start, time_window_end, request_count 
                 FROM model_usage_metrics
-                WHERE time_window_start = $1;
+                WHERE time_window_start = $1
                 ORDER BY time_window_start
-                LIMIT $2
+                LIMIT $2;
             """
 
             records = await conn.fetch(query, time_window_start, limit)
