@@ -1,6 +1,6 @@
 from typing import Optional
 from src.models import MLModelRouting, ModelUsageMetric
-from src.database import redis_client, pg_pool
+from src import database as db
 
 async def register_model(model_data: MLModelRouting):
     """
@@ -9,18 +9,18 @@ async def register_model(model_data: MLModelRouting):
     Uses connection pooling for efficiency.
     """
     # 1. Write to REDIS (only if an IP address was provided)
-    if model_data.ip_address and redis_client:
+    if model_data.ip_address and db.redis_client:
         # Store in the "model_routes" hash according to the DB structure
-        await redis_client.hset(
+        await db.redis_client.hset(
             "model_routes", 
             key=model_data.model_name, 
             value=model_data.ip_address
         )
         print(f"Saved address {model_data.ip_address} in Redis for {model_data.model_name}")
-
+        
     # 2. Write/Upsert to POSTGRES
-    if pg_pool is not None:
-        async with pg_pool.acquire() as conn:
+    if db.pg_pool is not None:
+        async with db.pg_pool.acquire() as conn:
             # Upsert into registry (ON CONFLICT DO UPDATE)
             query = """
                 INSERT INTO model_registry (model_name, health_status, last_called_at)
@@ -38,8 +38,8 @@ async def log_model_usage(metric_data: ModelUsageMetric):
     Logs a model call into the appropriate time bucket in the `model_usage_metrics` table.
     This function is called at the end of each user request.
     """
-    if pg_pool is not None:
-        async with pg_pool.acquire() as conn:
+    if db.pg_pool is not None:
+        async with db.pg_pool.acquire() as conn:
             query = """
                 INSERT INTO model_usage_metrics 
                     (model_name, time_window_start, time_window_end, request_count)
@@ -67,16 +67,16 @@ async def delete_model(model_name: str):
     will automatically take care of removing the associated metrics as well.
     """
     # 1. Remove from REDIS (traffic will stop being routed to it immediately)
-    if redis_client:
-        deleted_count = await redis_client.hdel("model_routes", model_name)
+    if db.redis_client:
+        deleted_count = await db.redis_client.hdel("model_routes", model_name)
         if deleted_count > 0:
             print(f"Removed model {model_name} from routing in Redis.")
         else:
             print(f"Model {model_name} did not exist in Redis.")
 
     # 2. Remove from POSTGRES (hard data and logs)
-    if pg_pool is not None:
-        async with pg_pool.acquire() as conn:
+    if db.pg_pool is not None:
+        async with db.pg_pool.acquire() as conn:
             query = "DELETE FROM model_registry WHERE model_name = $1"
             result = await conn.execute(query, model_name)
             
